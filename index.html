@@ -18,6 +18,14 @@
     body { background: #f8f9fa; }
     .card { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
     .btn-action { margin-right: 5px; }
+    #installBtn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: none;
+      z-index: 999;
+    }
+
   </style>
 </head>
 <body>
@@ -59,6 +67,10 @@
         <div class="col-9"></div>
         <div class="col-3">
           <input type="text" class="form-control mb-3" id="searchTrain" placeholder="🔍 Search Train..." />
+          <button id="installBtn" style="display: none;" class="btn btn-primary">
+            📲 Install App
+          </button>
+
         </div>
       </div>
 
@@ -259,6 +271,33 @@
         .then(() => console.log('✅ Service Worker Registered'))
         .catch(err => console.error('❌ SW Registration Failed:', err));
     }
+
+
+
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    
+      document.getElementById('installBtn').style.display = 'inline-block';
+    });
+    
+    document.getElementById('installBtn').addEventListener('click', () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+    
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User installed the app');
+          } else {
+            console.log('User dismissed the install prompt');
+          }
+          deferredPrompt = null;
+        });
+      }
+    });
+
   </script>
 
 </body>
