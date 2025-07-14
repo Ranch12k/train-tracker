@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d6efd">
+  <title>Train Schedule Tracker</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png" type="image/png">
+
+  <style>
+    body {
+      background: #f8f9fa;
+    }
+    .card {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .btn-action {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container my-5">
+    <h2 class="text-center mb-4">Train Schedule Tracker</h2>
+
+    <div class="card p-4">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Train Name</label>
+          <input type="text" id="trainName" class="form-control" placeholder="Enter Train Name">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Arrival Time</label>
+          <div class="d-flex">
+            <select id="arrivalHour" class="form-select me-2"><option value="">Hr</option></select>
+            <select id="arrivalMinute" class="form-select"><option value="">Min</option></select>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Departure Time</label>
+          <div class="d-flex">
+            <select id="departureHour" class="form-select me-2"><option value="">Hr</option></select>
+            <select id="departureMinute" class="form-select"><option value="">Min</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <button onclick="addOrUpdateTrain()" class="btn btn-primary px-4">Add Train</button>
+      </div>
+
+      <div class="table-responsive mt-4">
+        <table class="table table-bordered table-hover">
+          <thead class="table-primary text-center">
+            <tr>
+              <th>#</th>
+              <th>Train Name</th>
+              <th>Arrival Time</th>
+              <th>Departure Time</th>
+              <th>Time Difference</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="trainTableBody" class="text-center"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('Service Worker Registered'));
+    }
+  </script>
+
+  <!-- App Logic -->
+  <script>
+    let trains = JSON.parse(localStorage.getItem('trains')) || [];
+    let editIndex = -1;
+
+    function calculateTimeDiff(startHour, startMin, endHour, endMin) {
+      let start = startHour * 60 + startMin;
+      let end = endHour * 60 + endMin;
+      let diff = end - start;
+      if (diff < 0) diff += 24 * 60;
+      const hrs = Math.floor(diff / 60);
+      const mins = diff % 60;
+      return `${hrs} hrs ${mins} mins`;
+    }
+
+    function addOrUpdateTrain() {
+      const name = document.getElementById("trainName").value.trim();
+      const arrivalH = parseInt(document.getElementById("arrivalHour").value);
+      const arrivalM = parseInt(document.getElementById("arrivalMinute").value);
+      const departureH = parseInt(document.getElementById("departureHour").value);
+      const departureM = parseInt(document.getElementById("departureMinute").value);
+
+      if (!name || isNaN(arrivalH) || isNaN(arrivalM) || isNaN(departureH) || isNaN(departureM)) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      const timeDiff = calculateTimeDiff(arrivalH, arrivalM, departureH, departureM);
+
+      const train = {
+        name,
+        arrival: `${arrivalH.toString().padStart(2, '0')}:${arrivalM.toString().padStart(2, '0')}`,
+        departure: `${departureH.toString().padStart(2, '0')}:${departureM.toString().padStart(2, '0')}`,
+        timeDiff
+      };
+
+      if (editIndex === -1) {
+        trains.push(train);
+      } else {
+        trains[editIndex] = train;
+        editIndex = -1;
+      }
+
+      saveData();
+      clearForm();
+      renderTable();
+    }
+
+    function clearForm() {
+      document.getElementById("trainName").value = "";
+      document.getElementById("arrivalHour").value = "";
+      document.getElementById("arrivalMinute").value = "";
+      document.getElementById("departureHour").value = "";
+      document.getElementById("departureMinute").value = "";
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("trainTableBody");
+      tbody.innerHTML = "";
+
+      trains.forEach((train, index) => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${train.name}</td>
+            <td>${train.arrival}</td>
+            <td>${train.departure}</td>
+            <td>${train.timeDiff}</td>
+            <td>
+              <button class="btn btn-success btn-sm btn-action" onclick="editTrain(${index})">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteTrain(${index})">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function editTrain(index) {
+      const train = trains[index];
+      const [aH, aM] = train.arrival.split(':').map(Number);
+      const [dH, dM] = train.departure.split(':').map(Number);
+
+      document.getElementById("trainName").value = train.name;
+      document.getElementById("arrivalHour").value = aH;
+      document.getElementById("arrivalMinute").value = aM;
+      document.getElementById("departureHour").value = dH;
+      document.getElementById("departureMinute").value = dM;
+
+      editIndex = index;
+    }
+
+    function deleteTrain(index) {
+      if (confirm("Are you sure you want to delete this train?")) {
+        trains.splice(index, 1);
+        saveData();
+        renderTable();
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem('trains', JSON.stringify(trains));
+    }
+
+    function generateHourOptions(id) {
+      const select = document.getElementById(id);
+      for (let i = 0; i < 24; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.text = i.toString().padStart(2, '0');
+        select.appendChild(opt);
+      }
+    }
+
+    function generateMinuteOptions(id) {
+      const select = document.getElementById(id);
+      for (let i = 0; i < 60; i += 5) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.text = i.toString().padStart(2, '0');
+        select.appendChild(opt);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      generateHourOptions("arrivalHour");
+      generateHourOptions("departureHour");
+      generateMinuteOptions("arrivalMinute");
+      generateMinuteOptions("departureMinute");
+      renderTable();
+    });
+  </script>
+
+</body>
+</html>
