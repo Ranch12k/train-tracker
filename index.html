@@ -55,6 +55,13 @@
       <div class="text-center mt-2">
         <small id="timeDiffPreview" class="text-muted"></small>
       </div>
+      <!-- Search input -->
+    <div class="mt-4 row">
+    <div class="col-9"></div>
+    <div class="col-3">
+        <input type="text" class="form-control mb-3" id="searchTrain" placeholder="🔍 Search Train..." />
+    </div>
+    </div>
 
       <div class="table-responsive mt-4">
         <table class="table table-bordered table-hover">
@@ -242,6 +249,17 @@
     document.addEventListener("DOMContentLoaded", () => {
       generateDropdowns();
       renderTable();
+    });
+
+
+    // Search function to filter trains by name
+    document.getElementById("searchTrain").addEventListener("input", function () {
+    const keyword = this.value.toLowerCase();
+    const rows = document.querySelectorAll("#trainTableBody tr");
+    rows.forEach((row) => {
+        const name = row.children[1].textContent.toLowerCase();
+        row.style.display = name.includes(keyword) ? "" : "none";
+    });
     });
   </script>
 
