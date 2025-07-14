@@ -268,7 +268,17 @@
         .then(() => console.log('Service Worker Registered!'))
         .catch(err => console.error('SW Error:', err));
     }
+
+  self.addEventListener('install', (event) => {
+    console.log('Service Worker Installed');
+  });
+  
+  self.addEventListener('fetch', (event) => {
+    console.log('Fetch request for:', event.request.url);
+  });
   </script>
+
+  
 
 </body>
 </html>
